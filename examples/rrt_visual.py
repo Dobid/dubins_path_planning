@@ -1,5 +1,15 @@
+import sys
+import os
+
+# Get the current working directory
+current_directory = os.getcwd()
+
+# Append the current working directory to the system path
+sys.path.append(current_directory)
+
+
 import math
-from RRT.rrt import visualize_rrt_3d
+from rrt_path_plannig.rrt import visualize_rrt_3d
 
 if __name__ == '__main__':
     # Test the 3D RRT implementation
