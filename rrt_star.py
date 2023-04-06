@@ -1,14 +1,26 @@
-
 import time
 import math
 import random
 from tqdm import tqdm
 from typing import List, Tuple
 
-from .node import Node
-from .utils import *
+from .utils.node import Node
+from .utils.plan_utils import (
+    euclidean_distance,
+    combined_distance,
+    collision_free,
+    local_density,
+    path_cost,
+    rewire,
+    get_closest_node_to_goal,
+    get_nearby_nodes,
+    get_nearest_node,
+    get_path
+)
 
-def rrt(
+
+
+def rrt_star(
     start: Tuple[float, float, float, float, float, float],
     goal: Tuple[float, float, float, float, float, float],
     obstacles: List[Tuple[float, float, float, float, float, float]],
@@ -20,7 +32,15 @@ def rrt(
     max_iter: int,
     bias: float = 0.45,
     timeout: int = 25,
-) -> Tuple[List[Tuple[float, float, float]], List[Tuple[float, float, float, float, float, float]], List[Node]]:
+    robot_radius: float = 2.0,
+    optimize_path: bool = False,
+    dynamic_generation: bool = True,
+    verbose: bool = False,
+) -> Tuple[
+    List[Tuple[float, float, float]],
+    List[Tuple[float, float, float, float, float, float]],
+    List[Node],
+]:
     """
     Args:
         start (tuple): The start configuration (x, y, z, roll, pitch, yaw).
@@ -41,17 +61,52 @@ def rrt(
         node_list (list): The list of nodes in the RRT.
     """
 
+    if verbose:
+        print(
+            """
+        RRT parameters:
+        ---------------
+        Start: {}
+        Goal: {}
+        Obstacles: {}
+        Width: {}
+        Height: {}
+        Depth: {}
+        Delta: {}
+        Delta angle: {}
+        Max iterations: {}
+        Bias: {}
+        Timeout: {}
+        Optimize path: {}
+        Dynamic generation: {}
+        """.format(
+                start,
+                goal,
+                obstacles,
+                width,
+                height,
+                depth,
+                delta,
+                delta_angle,
+                max_iter,
+                bias,
+                timeout,
+                optimize_path,
+                dynamic_generation,
+            )
+        )
+
     start_node = Node(start[0], start[1], start[2], start[3], start[4], start[5])
     goal_node = Node(goal[0], goal[1], goal[2], goal[3], goal[4], goal[5])
     node_list = [start_node]
     best_goal_node = None
-    dynamic_generation = True
-    optimize_path = True
+    
     start_time = time.time()
-    for _ in tqdm(range(max_iter), desc="RRT"):
+    for _ in tqdm(range(max_iter), desc="RRT*"):
+
         if time.time() - start_time > timeout:
             break
-        
+
         if best_goal_node is not None:
             dynamic_generation = False
 
@@ -83,8 +138,13 @@ def rrt(
         nearest_node = get_nearest_node(node_list, random_node)
 
         # Calculate the position of the new node
-        theta = math.atan2(random_node.y - nearest_node.y, random_node.x - nearest_node.x)
-        phi = math.acos((random_node.z - nearest_node.z) / euclidean_distance(random_node, nearest_node))
+        theta = math.atan2(
+            random_node.y - nearest_node.y, random_node.x - nearest_node.x
+        )
+        phi = math.acos(
+            (random_node.z - nearest_node.z)
+            / euclidean_distance(random_node, nearest_node)
+        )
 
         new_x = nearest_node.x + delta * math.cos(theta) * math.sin(phi)
         new_y = nearest_node.y + delta * math.sin(theta) * math.sin(phi)
@@ -108,7 +168,12 @@ def rrt(
         new_node.parent = nearest_node
 
         if collision_free(new_node, nearest_node, obstacles):
+            new_node.cost = nearest_node.cost + combined_distance(nearest_node, new_node)
             node_list.append(new_node)
+
+            # Find nearby nodes and rewire them
+            nearby_nodes = get_nearby_nodes(node_list, new_node, delta)
+            rewire(new_node, nearby_nodes, obstacles, robot_radius)
 
             if euclidean_distance(new_node, goal_node) < delta:
                 new_path = []
@@ -116,12 +181,20 @@ def rrt(
                 while current_node is not None:
                     new_path.append(current_node)
                     current_node = current_node.parent
-                
-                if best_goal_node is None or path_cost(new_path) < path_cost(get_path(best_goal_node)):
+
+                if best_goal_node is None or path_cost(new_path) < path_cost(
+                    get_path(best_goal_node)
+                ):
                     if best_goal_node is None:
                         print("\nFEASIBLE PATH FOUND\nSWITCHED TO OPTIMIZATION MODE\n")
                     best_goal_node = new_node
-                    print("New best path found with cost: {}".format(path_cost(get_path(best_goal_node))))
+                    if not optimize_path:
+                        break
+                    print(
+                        "New best path found with cost: {}".format(
+                            path_cost(get_path(best_goal_node))
+                        )
+                    )
 
     if best_goal_node is None:
         # Get the closest node to the goal if the goal is not found
@@ -132,7 +205,16 @@ def rrt(
     current_node = best_goal_node
     while current_node is not None:
         path.append((current_node.x, current_node.y, current_node.z))
-        path_orientation.append((current_node.x, current_node.y, current_node.z, current_node.roll, current_node.pitch, current_node.yaw))
+        path_orientation.append(
+            (
+                current_node.x,
+                current_node.y,
+                current_node.z,
+                current_node.roll,
+                current_node.pitch,
+                current_node.yaw,
+            )
+        )
         current_node = current_node.parent
 
     return path[::-1], path_orientation[::-1], node_list

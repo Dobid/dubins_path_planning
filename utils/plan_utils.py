@@ -1,7 +1,6 @@
-import math 
+import math
 from typing import List, Tuple
 import numpy as np
-
 from .node import Node
 
 def euclidean_distance(node1: Node, node2: Node) -> float:
@@ -15,7 +14,10 @@ def euclidean_distance(node1: Node, node2: Node) -> float:
     Returns:
     float: The Euclidean distance between the nodes.
     """
-    return math.sqrt((node1.x - node2.x)**2 + (node1.y - node2.y)**2 + (node1.z - node2.z)**2)
+    return math.sqrt(
+        (node1.x - node2.x) ** 2 + (node1.y - node2.y) ** 2 + (node1.z - node2.z) ** 2
+    )
+
 
 def orientation_distance(node1: Node, node2: Node) -> float:
     """
@@ -34,6 +36,7 @@ def orientation_distance(node1: Node, node2: Node) -> float:
 
     return roll_diff + pitch_diff + yaw_diff
 
+
 def combined_distance(node1: Node, node2: Node, alpha: float = 0.5) -> float:
     """
     Calculate the combined distance between two nodes based on position and orientation.
@@ -48,8 +51,9 @@ def combined_distance(node1: Node, node2: Node, alpha: float = 0.5) -> float:
     """
     position_distance = euclidean_distance(node1, node2)
     o_distance = orientation_distance(node1, node2)
-    
+
     return alpha * position_distance + (1 - alpha) * o_distance
+
 
 def get_closest_node_to_goal(node_list: List[Node], goal_node: Node) -> Node:
     """
@@ -73,6 +77,7 @@ def get_closest_node_to_goal(node_list: List[Node], goal_node: Node) -> Node:
 
     return closest_node
 
+
 def get_nearest_node(node_list: List[Node], random_node: Node) -> Node:
     """
     Find the nearest node to the random node in a list of nodes.
@@ -95,7 +100,11 @@ def get_nearest_node(node_list: List[Node], random_node: Node) -> Node:
     return nearest_node
 
 
-def collision_free(new_node: Node, parent_node: Node, obstacles: List[Tuple[float, float, float, float, float, float]]) -> bool:
+def collision_free(
+    new_node: Node,
+    parent_node: Node,
+    obstacles: List[Tuple[float, float, float, float, float, float]],
+) -> bool:
     """
     Check if the path between new_node and its parent_node is collision-free.
     Args:
@@ -111,9 +120,14 @@ def collision_free(new_node: Node, parent_node: Node, obstacles: List[Tuple[floa
         x_min, y_min, z_min, x_len, y_len, z_len = obs
         x_max, y_max, z_max = x_min + x_len + 1, y_min + y_len + 1, z_min + z_len + 1
 
-        if x_min-1 <= new_node.x <= x_max and y_min-1 <= new_node.y <= y_max and z_min-1 <= new_node.z <= z_max:
+        if (
+            x_min - 1 <= new_node.x <= x_max
+            and y_min - 1 <= new_node.y <= y_max
+            and z_min - 1 <= new_node.z <= z_max
+        ):
             return False
     return True
+
 
 def local_density(closest_node: Node, node_list: List[Node], radius: float) -> float:
     """
@@ -133,6 +147,7 @@ def local_density(closest_node: Node, node_list: List[Node], radius: float) -> f
             count += 1
     return count / len(node_list)
 
+
 def path_cost(path: List[Node]) -> float:
     """
     Calculate the total cost of the path.
@@ -147,6 +162,7 @@ def path_cost(path: List[Node]) -> float:
     for i in range(len(path) - 1):
         cost += combined_distance(path[i], path[i + 1])
     return cost
+
 
 def get_path(goal_node: Node) -> List[Node]:
     """
@@ -165,3 +181,36 @@ def get_path(goal_node: Node) -> List[Node]:
         current_node = current_node.parent
 
     return path[::-1]
+
+def get_nearby_nodes(node_list, node, radius):
+    nearby_nodes = []
+    for other_node in node_list:
+        if euclidean_distance(node, other_node) < radius:
+            nearby_nodes.append(other_node)
+    return nearby_nodes
+
+def rewire(new_node, nearby_nodes, obstacles, robot_radius):
+    for nearby_node in nearby_nodes:
+        if collision_free_body(new_node, nearby_node, obstacles, robot_radius):
+            new_cost = new_node.cost + euclidean_distance(new_node, nearby_node)
+            if new_cost < nearby_node.cost:
+                nearby_node.parent = new_node
+                nearby_node.cost = new_cost
+
+def collision_free_body(node1, node2, obstacles, robot_radius):
+    for obstacle in obstacles:
+        # Calculate the midpoint and distance between node1 and node2
+        mid_x = (node1.x + node2.x) / 2
+        mid_y = (node1.y + node2.y) / 2
+        mid_z = (node1.z + node2.z) / 2
+        dist = euclidean_distance(node1, node2) / 2
+
+        # Check if the midpoint + robot_radius is within any obstacle
+        if (
+            mid_x - robot_radius < obstacle[0] < mid_x + robot_radius
+            and mid_y - robot_radius < obstacle[1] < mid_y + robot_radius
+            and mid_z - robot_radius < obstacle[2] < mid_z + robot_radius
+        ):
+            return False
+
+    return True
