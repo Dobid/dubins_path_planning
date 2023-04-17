@@ -49,9 +49,9 @@ def draw_trajectory(ax: Axes3D, trajectory: np.ndarray, color: str = "c", linest
     xs, ys, zs = trajectory[:, 0], trajectory[:, 1], trajectory[:, 2]
     ax.plot(xs, ys, zs, color, linewidth=2, linestyle=linestyle, marker=marker, markersize=5)
 
-def draw_path_old(ax: Axes3D, path: List[Tuple[float, float, float]]) -> None:
+def draw_path_old(ax: Axes3D, path: List[Tuple[float, float, float]], color: str = "g") -> None:
     xs, ys, zs = zip(*path)
-    ax.plot(xs, ys, zs, "g", linewidth=2)
+    ax.plot(xs, ys, zs, color, linewidth=2)
 
 def draw_path(
     ax: Axes3D, path: List[Tuple[float, float, float, float, float, float]]
@@ -166,7 +166,7 @@ def visualize_rrt_3d(
         draw_path(ax, smoothed_path_no_short)
 
     elif args["draw_orientation"] is False:
-        draw_path_old(ax, path)
+        draw_path_old(ax, path, "r")
         draw_path_old(ax, smoothed_path)  # Add this line to visualize the smoothed path
 
     ax.scatter(start[0], start[1], start[2], c="b", s=50, marker="s")
