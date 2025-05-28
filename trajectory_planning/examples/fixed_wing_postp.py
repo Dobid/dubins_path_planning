@@ -12,15 +12,28 @@ import math
 from trajectory_planning import (
     visualize_trajectory,
     smooth_trajectory,
-    enforce_minimum_turning_radius, 
+    enforce_minimum_turning_radius,
     verify_speed_constraints,
     discretize_trajectory,
     compute_orientations
 )
 
+obstacles = [
+    # (5, 6, 5, 6, 5, 6),
+    (5, 6, 5, 0, 0, 0),
+]
+
 # Example usage
-waypoints = [(0, 0, 0), (1, 2, 3), (2, 4, 6), (4, 4, 4), (6, 2, 0)]
+waypoints = [
+    (0, 0, 0),
+    (1, 2, 3),
+    (2, 0, 3),
+    (4, 4, 4),
+    # (6, 2, 0)
+]
+
 smoothed_points = smooth_trajectory(waypoints)
+print("Smoothed Points:", smoothed_points.shape)
 min_turning_radius = 5  # Replace with your desired value
 adjusted_points = enforce_minimum_turning_radius(smoothed_points, min_turning_radius)
 min_speed, max_speed, dt = 1, 10, 1  # Replace with your desired values
@@ -32,5 +45,4 @@ step_size_pos, step_size_vel, step_size_ori = 10, 10, 10  # Replace with your de
 discretized_segments = discretize_trajectory(trajectory, orientation, step_size_pos, step_size_vel, step_size_ori)
 
 # Example usage
-visualize_trajectory(np.array(waypoints), np.array(adjusted_points), np.array(trajectory))
-
+visualize_trajectory(np.array(waypoints), np.array(adjusted_points), np.array(trajectory), obstacles)

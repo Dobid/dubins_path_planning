@@ -3,7 +3,8 @@ import numpy as np
 from typing import List
 
 def mod2pi(theta):
-    return theta - 2 * math.pi * math.floor((theta + math.pi) / (2 * math.pi))
+    # return theta - 2 * math.pi * math.floor((theta + math.pi) / (2 * math.pi))
+    return theta % (2 * math.pi)
 
 
 """
@@ -16,6 +17,13 @@ class DubinsStruct:
         self.q = q
         self.length = length
         self.case = case
+
+    def __repr__(self):
+        return (
+            f"DubinsStruct("
+            f"\n\t\t\t t={self.t},\n\t\t\t p={self.p},\n\t\t\t q={self.q}, "
+            f"\n\t\t\t length={self.length},\n\t\t\t case='{self.case}')"
+        )
 
 
 """
@@ -31,6 +39,13 @@ class DubinsManeuver2D:
         self.qf = qf
         self.rhomin = rhomin
         self.maneuver = maneuver
+    
+    def __repr__(self):
+        return (
+            f"DubinsManeuver2D("
+            f"\n\t\t qi={self.qi}, \n\t\t qf={self.qf}, \n\t\t rhomin={self.rhomin}, "
+            f"\n\t\t maneuver={self.maneuver})"
+        )
 
 
 class DubinsManeuver3D:
@@ -41,6 +56,13 @@ class DubinsManeuver3D:
         self.pitchlims = pitchlims
         self.path = path
         self.length = length
+
+    def __repr__(self):
+        return (
+            f"DubinsManeuver3D("
+            f"\n\t qi={self.qi}, \n\t qf={self.qf}, \n\t rhomin={self.rhomin},"
+            f"\n\t pitchlims={self.pitchlims},\n\t path={self.path}, \n\t length={self.length})"
+        )
 
 def DubinsManeuver2D_func(
     qi: List[float], qf: List[float], rhomin=1.0, minLength=None, disable_CCC=False
@@ -57,7 +79,8 @@ def DubinsManeuver2D_func(
     d = D / maneuver.rhomin
 
     # Normalize the problem using rotation
-    rotationAngle = math.atan2(dy, dx)
+    rotationAngle = mod2pi(math.atan2(dy, dx))
+
     a = mod2pi(maneuver.qi[2] - rotationAngle)
     b = mod2pi(maneuver.qf[2] - rotationAngle)
 
@@ -343,7 +366,7 @@ def try_to_construct(maneuver, horizontal_radius):
     # Dlon = Vertical1D(qi3D, qf3D, vertical_radius, self.pitchlims)
     Dlon = DubinsManeuver2D_func(qi3D, qf3D, rhomin=vertical_radius)
 
-    if Dlon.maneuver.case == "RLR" or Dlon.maneuver.case == "RLR":
+    if Dlon.maneuver.case == "RLR" or Dlon.maneuver.case == "LRL":
         return []
 
     if Dlon.maneuver.case[0] == "R":
