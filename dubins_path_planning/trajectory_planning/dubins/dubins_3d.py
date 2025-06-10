@@ -108,7 +108,7 @@ def DubinsManeuver2D_func(
         and abs(a) < maneuver.rhomin * 1e-5
         and abs(b) < maneuver.rhomin * 1e-5
     ):
-        dist_2D = np.max(np.abs(maneuver.qi[0:2] - maneuver.qf[0:2]))
+        dist_2D = np.max(np.abs(np.array(maneuver.qi[0:2]) - np.array(maneuver.qf[0:2])))
         if dist_2D < maneuver.rhomin * 1e-5:
             pathC = _C(maneuver)
             _paths = [pathC]
@@ -453,6 +453,7 @@ def Vertical(qi, qf, rhomin, pitchmax):
 
     # Normalize the problem using rotation
     rotationAngle = mod2pi(math.atan2(dy, dx))
+    # rotationAngle = mod2pi(math.atan2(dx, dy))
     a = mod2pi(maneuver.qi[2] - rotationAngle)
     b = mod2pi(maneuver.qf[2] - rotationAngle)
 
@@ -506,6 +507,7 @@ def v_LSL(maneuver):
         diff = o2 - o1
         center_distance = math.sqrt(diff[0] ** 2 + diff[1] ** 2)
         centerAngle = math.atan2(diff[1], diff[0])
+        # centerAngle = math.atan2(diff[0], diff[1])
 
         t = mod2pi(-theta1 + centerAngle)
         p = center_distance / radius
@@ -559,6 +561,7 @@ def v_RSR(maneuver):
         diff = o2 - o1
         center_distance = math.sqrt(diff[0] ** 2 + diff[1] ** 2)
         centerAngle = math.atan2(diff[1], diff[0])
+        # centerAngle = math.atan2(diff[0], diff[1])
 
         t = maneuver._mod2pi(theta1 - centerAngle)
         p = center_distance / radius
@@ -619,6 +622,7 @@ def v_LSR(maneuver, pitchmax):
         alpha = math.asin(2.0 * radius / center_distance)
 
     centerAngle = math.atan2(diff[1], diff[0]) + alpha
+    # centerAngle = math.atan2(diff[0], diff[1]) + alpha
 
     if centerAngle < pitchmax[1]:
         t = mod2pi(-theta1 + centerAngle)
